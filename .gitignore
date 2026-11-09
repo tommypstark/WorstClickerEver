@@ -1,0 +1,25 @@
+# Android Studio
+/.idea/
+*.iml
+/local.properties
+
+# Build files
+.gradle/
+**/build/
+*.apk
+*.aab
+
+# Kotlin
+/.kotlin/
+
+# macOS
+.DS_Store
+
+# Other
+/captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing keys
+*.jks
+*.keystore
