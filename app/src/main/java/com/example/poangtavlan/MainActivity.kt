@@ -1,5 +1,6 @@
 package com.example.poangtavlan
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,12 +16,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -53,11 +57,40 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ClickerScreen(name: String) {
 
-    var points by remember { mutableLongStateOf(0L) }
-    var pointsPerClick by remember { mutableLongStateOf(1L) }
-    var upgradeCost by remember { mutableLongStateOf(50L) }
-    var prestigeLevel by remember { mutableLongStateOf(0L) }
-    var bonusProgress by remember { mutableLongStateOf(0L) }
+    val prefs = LocalContext.current.getSharedPreferences(
+        "worst_clicker",
+        Context.MODE_PRIVATE
+    )
+
+    var points by remember {
+        mutableLongStateOf(prefs.getLong("points", 0L))
+    }
+    var pointsPerClick by remember {
+        mutableLongStateOf(prefs.getLong("pointsPerClick", 1L))
+    }
+    var upgradeCost by remember {
+        mutableLongStateOf(prefs.getLong("upgradeCost", 50L))
+    }
+    var prestigeLevel by remember {
+        mutableLongStateOf(prefs.getLong("prestigeLevel", 0L))
+    }
+    var bonusProgress by remember {
+        mutableLongStateOf(prefs.getLong("bonusProgress", 0L))
+    }
+
+    LaunchedEffect(
+        points, pointsPerClick, upgradeCost,
+        prestigeLevel, bonusProgress
+    ) {
+        prefs.edit()
+            .putLong("points", points)
+            .putLong("pointsPerClick", pointsPerClick)
+            .putLong("upgradeCost", upgradeCost)
+            .putLong("prestigeLevel", prestigeLevel)
+            .putLong("bonusProgress", bonusProgress)
+            .apply()
+    }
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
@@ -82,71 +115,78 @@ fun ClickerScreen(name: String) {
             fontWeight = FontWeight.Bold,
             fontSize = 41.sp,
             color = Color.White,
-            modifier = Modifier.padding(bottom = 64.dp)
+            modifier = Modifier.padding(bottom = 5.dp)
         )
 
-        Text(
-            text = "Level:\n${pointsPerClick - 1}",
-            textAlign = TextAlign.Center,
-            fontSize = 20.sp,
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 50.dp)
-        )
-
-        Text(
-            text = "Points:",
-            fontSize = 20.sp,
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 0.dp)
-        )
-
-        Text(
-            text = "$points",
-            fontSize = 20.sp,
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 64.dp)
-        )
-
-        Button(
-            interactionSource = interactionSource,
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                points += pointsPerClick
-
-                // Beräknar prestige-bonusen i tiondelar, ger hela bonuspoäng
-                // och sparar resten till nästa klick:
-                bonusProgress += pointsPerClick * prestigeLevel
-                points += bonusProgress / 10L
-                bonusProgress %= 10L
-            },
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .aspectRatio(1f)
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                },
-
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFFD700),
-                contentColor = Color.Black,
-            )
+                .fillMaxWidth()
+                .weight(1f),
+            verticalArrangement = Arrangement.SpaceEvenly,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "+$pointsPerClick",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold
+                text = "Prestige:\n$prestigeLevel (+${prestigeLevel * 10}% bonus)",
+                textAlign = TextAlign.Center,
+                fontSize = 20.sp,
+                color = if (prestigeLevel == 0L) Color.Gray else Color.White
             )
-        }
 
-        Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "Level:\n${pointsPerClick - 1}",
+                textAlign = TextAlign.Center,
+                fontSize = 20.sp,
+                color = Color.White
+            )
+
+            Text(
+                text = "Points:\n$points",
+                textAlign = TextAlign.Center,
+                fontSize = 20.sp,
+                color = Color.White
+            )
+
+            Button(
+                interactionSource = interactionSource,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    points += pointsPerClick
+
+                    // Beräknar prestige-bonusen i tiondelar, ger hela bonuspoäng
+                    // och sparar resten till nästa klick:
+                    bonusProgress += pointsPerClick * prestigeLevel
+                    points += bonusProgress / 10L
+                    bonusProgress %= 10L
+                },
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .aspectRatio(1f)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    },
+
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFFD700),
+                    contentColor = Color.Black,
+                )
+            ) {
+                Text(
+                    text = "+$pointsPerClick",
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(76.dp),
                 onClick = {
                     points -= upgradeCost
                     pointsPerClick += 1L
@@ -174,12 +214,15 @@ fun ClickerScreen(name: String) {
                 )
             }
             Button(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(76.dp),
                 onClick = {
                     prestigeLevel += 1
                     pointsPerClick = 1L
                     points = 0L
                     upgradeCost = 50L
+                    bonusProgress = 0L
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF5CCB24),
