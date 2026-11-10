@@ -239,6 +239,13 @@ fun ClickerScreen(name: String) {
             }
         }
 
+        Text(
+            text = "Version 1.0",
+            fontSize = 12.sp,
+            color = Color.White.copy(alpha = 0.6f),
+            modifier = Modifier.padding(top = 8.dp)
+        )
+
     }
 
 }
