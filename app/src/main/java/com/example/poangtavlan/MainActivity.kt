@@ -4,24 +4,35 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,12 +52,27 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun ClickerScreen(name: String) {
-    var points by remember { mutableStateOf(0) }
+
+    var points by remember { mutableLongStateOf(0L) }
+    var pointsPerClick by remember { mutableLongStateOf(1L) }
+    var upgradeCost by remember { mutableLongStateOf(50L) }
+    var prestigeLevel by remember { mutableLongStateOf(0L) }
+    var bonusProgress by remember { mutableLongStateOf(0L) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 1.05f else 1f,
+        label = "coinScale"
+    )
+
+    val haptic = LocalHapticFeedback.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF303030))
-            .padding(16.dp),
+            .safeDrawingPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -54,30 +80,120 @@ fun ClickerScreen(name: String) {
         Text(
             text = name,
             fontWeight = FontWeight.Bold,
-            fontSize = 28.sp,
+            fontSize = 41.sp,
             color = Color.White,
             modifier = Modifier.padding(bottom = 64.dp)
         )
 
         Text(
-            text = "$points points",
+            text = "Level:\n${pointsPerClick - 1}",
+            textAlign = TextAlign.Center,
+            fontSize = 20.sp,
             color = Color.White,
-            modifier = Modifier.padding(bottom = 24.dp)
+            modifier = Modifier.padding(bottom = 50.dp)
+        )
+
+        Text(
+            text = "Points:",
+            fontSize = 20.sp,
+            color = Color.White,
+            modifier = Modifier.padding(bottom = 0.dp)
+        )
+
+        Text(
+            text = "$points",
+            fontSize = 20.sp,
+            color = Color.White,
+            modifier = Modifier.padding(bottom = 64.dp)
         )
 
         Button(
-            onClick = { points = points + 1 },
-            modifier = Modifier.size(160.dp),
+            interactionSource = interactionSource,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                points += pointsPerClick
+
+                // Beräknar prestige-bonusen i tiondelar, ger hela bonuspoäng
+                // och sparar resten till nästa klick:
+                bonusProgress += pointsPerClick * prestigeLevel
+                points += bonusProgress / 10L
+                bonusProgress %= 10L
+            },
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .aspectRatio(1f)
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                },
+
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFFFD700),
-                contentColor = Color.Black
+                contentColor = Color.Black,
             )
         ) {
             Text(
-                text = "+1",
+                text = "+$pointsPerClick",
                 fontSize = 48.sp,
                 fontWeight = FontWeight.Bold
             )
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    points -= upgradeCost
+                    pointsPerClick += 1L
+                    upgradeCost += pointsPerClick * 100L
+
+                    if (upgradeCost > 250L) {
+                        upgradeCost = (upgradeCost / 100L) * 100L
+                    }
+
+                    if (upgradeCost >= 900L) {
+                        upgradeCost = ((upgradeCost + 250L) / 500L) * 500L
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF5CCB24),
+                    contentColor = Color.Black,
+                ),
+                enabled = (points >= upgradeCost),
+            ) {
+                Text(
+                    lineHeight = 26.sp,
+                    textAlign = TextAlign.Center,
+                    fontSize = 20.sp,
+                    text = "Upgrade:\n$upgradeCost points"
+                )
+            }
+            Button(
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    prestigeLevel += 1
+                    pointsPerClick = 1L
+                    points = 0L
+                    upgradeCost = 50L
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF5CCB24),
+                    contentColor = Color.Black,
+                ),
+                enabled = pointsPerClick >= 11L,
+            ) {
+                Text(
+                    lineHeight = 26.sp,
+                    textAlign = TextAlign.Center,
+                    fontSize = 20.sp,
+                    text = "Prestige"
+                )
+            }
         }
 
     }
