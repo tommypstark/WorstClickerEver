@@ -10,13 +10,15 @@
         android:label="Worst Clicker Ever"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Poangtavlan">
+        android:theme="@style/Theme.WorstClickerEver"
+        android:appCategory="game">
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="Worst Clicker Ever"
-            android:theme="@style/Theme.Poangtavlan"
-            android:windowSoftInputMode="adjustResize">
+            android:theme="@style/Theme.WorstClickerEver"
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
