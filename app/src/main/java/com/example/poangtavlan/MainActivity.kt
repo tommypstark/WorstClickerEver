@@ -12,7 +12,6 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -149,14 +148,14 @@ fun ClickerScreen(name: String) {
             Button(
                 interactionSource = interactionSource,
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) // Adds gentle vibration
                     points += pointsPerClick
 
-                    // Beräknar prestige-bonusen i tiondelar, ger hela bonuspoäng
-                    // och sparar resten till nästa klick:
+                    // Adds whole prestige bonus points and saves the remaining tenths for future clicks.
                     bonusProgress += pointsPerClick * prestigeLevel
-                    points += bonusProgress / 10L
-                    bonusProgress %= 10L
+                    val bonusPartsPerPoint = 10L
+                    points += bonusProgress / bonusPartsPerPoint
+                    bonusProgress %= bonusPartsPerPoint
                 },
                 modifier = Modifier
                     .fillMaxWidth(0.9f)
@@ -239,6 +238,7 @@ fun ClickerScreen(name: String) {
             }
         }
 
+        // Adds a discreet text at the bottom showing current version number
         Text(
             text = "Version 1.0",
             fontSize = 12.sp,
